@@ -5,7 +5,8 @@ import lightning as L
 import loguru
 import torch
 import vod_configs
-import vod_types as vt
+from vod_configs.dataloaders import TokenizerCollateConfig, DataLoaderConfig
+from vod_types.sequence import DictsSequence
 from vod_dataloaders.tokenizer_collate import TokenizerCollate
 from vod_ops.utils import helpers
 from vod_tools.ts_factory.ts_factory import TensorStoreFactory
@@ -14,12 +15,12 @@ from .predict import Predict
 
 
 def compute_vectors(  # noqa: PLR0913
-    dataset: vt.DictsSequence,
+    dataset: DictsSequence,
     *,
     module: torch.nn.Module,
     fabric: L.Fabric,
-    collate_config: vod_configs.TokenizerCollateConfig,
-    dataloader_config: vod_configs.DataLoaderConfig,
+    collate_config: TokenizerCollateConfig,
+    dataloader_config: DataLoaderConfig,
     save_dir: pathlib.Path,
     field: str,
     validate_store: int = 1_000,

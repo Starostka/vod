@@ -10,26 +10,29 @@ import lightning as L
 import numpy as np
 import torch
 import vod_configs
-import vod_types as vt
 from loguru import logger
+
+from vod_configs.search import FaissFactoryConfig, ElasticsearchFactoryConfig, QdrantFactoryConfig, FAISS_METRICS_INV, \
+    HybridSearchFactoryConfig, SingleSearchFactoryConfig
 from vod_configs.utils.es_body import validate_es_body
 from vod_search import base, es_search, faiss_search, qdrant_search
 from vod_search.socket import find_available_port
 from vod_tools import fingerprint
 from vod_tools.misc.template import Template
+from vod_types.sequence import DictsSequence, Sequence
 
 from .base import ShardName
 from .hybrid_search import HyrbidSearchMaster
 from .sharded_search import ShardedSearchMaster
 
-D = typ.TypeVar("D", bound=vt.Sequence)
+D = typ.TypeVar("D", bound=Sequence)
 
 
 def build_search_index(  # noqa: PLR0913
     index_type: str,
     *,
-    sections: None | vt.DictsSequence,
-    vectors: None | vt.Sequence[np.ndarray],
+    sections: None | DictsSequence,
+    vectors: None | Sequence[np.ndarray],
     config: dict[str, typ.Any],
     cache_dir: str | pathlib.Path,
     skip_setup: bool = False,
@@ -45,7 +48,7 @@ def build_search_index(  # noqa: PLR0913
             raise ValueError("Must provide vectors for `faiss` index")
         return build_faiss_index(
             vectors=vectors,
-            config=vod_configs.FaissFactoryConfig(**config),
+            config=FaissFactoryConfig(**config),
             cache_dir=cache_dir,
             skip_setup=skip_setup,
             barrier_fn=barrier_fn,
@@ -57,7 +60,7 @@ def build_search_index(  # noqa: PLR0913
             raise ValueError("Must provide sections for `elasticsearch` index")
         return build_elasticsearch_index(
             sections=sections,
-            config=vod_configs.ElasticsearchFactoryConfig(**config),
+            config=ElasticsearchFactoryConfig(**config),
             skip_setup=skip_setup,
             free_resources=free_resources,
         )
@@ -70,7 +73,7 @@ def build_search_index(  # noqa: PLR0913
         return build_qdrant_index(
             vectors=vectors,
             sections=sections,
-            config=vod_configs.QdrantFactoryConfig(**config),
+            config=QdrantFactoryConfig(**config),
             skip_setup=skip_setup,
             free_resources=free_resources,
         )
@@ -79,14 +82,14 @@ def build_search_index(  # noqa: PLR0913
 
 
 def build_elasticsearch_index(
-    sections: vt.DictsSequence,
-    config: dict | vod_configs.ElasticsearchFactoryConfig,
+    sections: DictsSequence,
+    config: dict | ElasticsearchFactoryConfig,
     skip_setup: bool = False,
     free_resources: bool = False,
 ) -> es_search.ElasticSearchMaster:
     """Build a sparse elasticsearch index."""
     if isinstance(config, dict):
-        config = vod_configs.ElasticsearchFactoryConfig(**config)
+        config = ElasticsearchFactoryConfig(**config)
 
     # Validate the ES body and use it to compute the index fingerprint
     es_body = validate_es_body(config.es_body, language=config.language)
@@ -129,9 +132,9 @@ def build_elasticsearch_index(
 
 
 def build_faiss_index(
-    vectors: vt.Sequence[np.ndarray],
+    vectors: Sequence[np.ndarray],
     *,
-    config: vod_configs.FaissFactoryConfig | dict,
+    config: FaissFactoryConfig | dict,
     cache_dir: str | pathlib.Path,
     skip_setup: bool = False,
     barrier_fn: None | typ.Callable[[str], None] = None,
@@ -140,14 +143,14 @@ def build_faiss_index(
 ) -> faiss_search.FaissMaster:
     """Build a faiss index."""
     if isinstance(config, dict):
-        config = vod_configs.FaissFactoryConfig(**config)
+        config = FaissFactoryConfig(**config)
     if not torch.cuda.is_available():
         serve_on_gpu = False
     index_fingerprint = f"{fingerprint.fingerprint(vectors)}-{config.fingerprint()}"
     logger.info(
         f"Init. faiss index `{index_fingerprint}`, "
         f"factory: `{config.factory}`, "
-        f"metric: `{vod_configs.FAISS_METRICS_INV[config.metric]}`, "
+        f"metric: `{FAISS_METRICS_INV[config.metric]}`, "
         f"train_size: `{config.train_size}`"
     )
     index_path = pathlib.Path(cache_dir, "indices", f"{index_fingerprint}.faiss")
@@ -191,15 +194,15 @@ def build_faiss_index(
 
 
 def build_qdrant_index(
-    vectors: vt.Sequence[np.ndarray],
-    sections: vt.DictsSequence,
-    config: vod_configs.QdrantFactoryConfig | dict,
+    vectors: Sequence[np.ndarray],
+    sections: DictsSequence,
+    config: QdrantFactoryConfig | dict,
     skip_setup: bool = False,
     free_resources: bool = False,
 ) -> qdrant_search.QdrantSearchMaster:
     """Build a dense Qdrant index."""
     if isinstance(config, dict):
-        config = vod_configs.QdrantFactoryConfig(**config)
+        config = QdrantFactoryConfig(**config)
     index_fingerprint = f"{fingerprint.fingerprint(vectors)}-{config.fingerprint()}"
     logger.info(
         f"Init. Qdrant index `{index_fingerprint}`, "
@@ -224,7 +227,7 @@ def build_qdrant_index(
     )
 
 
-def _fetch_subset_ids(sections: vt.DictsSequence, subset_id_key: None | str) -> None | typ.Generator[str, None, None]:
+def _fetch_subset_ids(sections: DictsSequence, subset_id_key: None | str) -> None | typ.Generator[str, None, None]:
     if subset_id_key and subset_id_key in sections[0]:
         subset_ids = (row[subset_id_key] for row in iter(sections))
     else:
@@ -238,16 +241,16 @@ def _fetch_subset_ids(sections: vt.DictsSequence, subset_id_key: None | str) -> 
 
 
 def _init_dense_search_engine(
-    sections: None | vt.DictsSequence,
-    vectors: vt.Sequence[np.ndarray],
-    config: vod_configs.FaissFactoryConfig | vod_configs.QdrantFactoryConfig,
+    sections: None | DictsSequence,
+    vectors: Sequence[np.ndarray],
+    config: FaissFactoryConfig | QdrantFactoryConfig,
     cache_dir: str | pathlib.Path,
     skip_setup: bool,
     barrier_fn: None | typ.Callable[[str], None],
     serve_on_gpu: bool,
     free_resources: bool = False,
 ) -> qdrant_search.QdrantSearchMaster | faiss_search.FaissMaster:
-    if isinstance(config, vod_configs.FaissFactoryConfig):
+    if isinstance(config, FaissFactoryConfig):
         return build_faiss_index(
             vectors=vectors,
             config=config,
@@ -257,7 +260,7 @@ def _init_dense_search_engine(
             serve_on_gpu=serve_on_gpu,
             free_resources=free_resources,
         )
-    if isinstance(config, vod_configs.QdrantFactoryConfig):
+    if isinstance(config, QdrantFactoryConfig):
         if sections is None:
             raise ValueError("`sections` must be provided when using `Qdrant` search engine")
         return build_qdrant_index(
@@ -273,9 +276,9 @@ def _init_dense_search_engine(
 
 def build_hybrid_search_engine(  # noqa: C901, PLR0912, PLR0913
     *,
-    sections: None | dict[ShardName, vt.DictsSequence],
-    vectors: None | dict[ShardName, vt.Sequence[np.ndarray]],
-    configs: dict[ShardName, vod_configs.HybridSearchFactoryConfig],
+    sections: None | dict[ShardName, DictsSequence],
+    vectors: None | dict[ShardName, Sequence[np.ndarray]],
+    configs: dict[ShardName, HybridSearchFactoryConfig],
     cache_dir: str | pathlib.Path,
     dense_enabled: bool = True,
     sparse_enabled: bool = True,
@@ -378,11 +381,11 @@ def _rank_info() -> str:
 
 
 def _resolve_ports(
-    config: vod_configs.HybridSearchFactoryConfig,
+    config: HybridSearchFactoryConfig,
     fabric: None | L.Fabric,
-) -> vod_configs.HybridSearchFactoryConfig:
+) -> HybridSearchFactoryConfig:
     """Resolve missing ports."""
-    engines: dict[str, vod_configs.SingleSearchFactoryConfig] = copy.copy(config.engines)
+    engines: dict[str, SingleSearchFactoryConfig] = copy.copy(config.engines)
     for key, engine in engines.items():
         if engine.port < 0:
             new_port = find_available_port()
@@ -394,7 +397,7 @@ def _resolve_ports(
     return config.model_copy(update={"engines": engines})
 
 
-def _infer_offsets(x: dict[ShardName, vt.Sequence], shard_names: list[ShardName]) -> dict[ShardName, int]:
+def _infer_offsets(x: dict[ShardName, Sequence], shard_names: list[ShardName]) -> dict[ShardName, int]:
     """Infer the offsets of a list of SizedDatasets."""
     if len(x) == 0:
         return {}
@@ -403,8 +406,8 @@ def _infer_offsets(x: dict[ShardName, vt.Sequence], shard_names: list[ShardName]
 
 
 def _infer_and_validate_offsets(
-    sections: None | dict[ShardName, vt.Sequence],
-    vectors: None | dict[ShardName, vt.Sequence],
+    sections: None | dict[ShardName, Sequence],
+    vectors: None | dict[ShardName, Sequence],
     shard_names: list[ShardName],
 ) -> dict[ShardName, int]:
     if sections is not None and vectors is not None:
@@ -424,9 +427,9 @@ def _infer_and_validate_offsets(
 
 
 def _get_list_of_shard_names(
-    configs: dict[ShardName, vod_configs.HybridSearchFactoryConfig],
-    sections: None | dict[ShardName, vt.DictsSequence] = None,
-    vectors: None | dict[ShardName, vt.Sequence[np.ndarray]] = None,
+    configs: dict[ShardName, HybridSearchFactoryConfig],
+    sections: None | dict[ShardName, DictsSequence] = None,
+    vectors: None | dict[ShardName, Sequence[np.ndarray]] = None,
 ) -> list[ShardName]:
     """Get the list of shard names."""
     shard_names = list(configs.keys())

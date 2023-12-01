@@ -3,13 +3,13 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "vod-dataloaders"
+name = "vod-ops"
 version = "0.1.0"
-description = "Package for VOD dataloaders"
+target-version = "py311"
+description = "Package for VOD operations / workflows"
 authors = ["Valentin Liévin <vl@raffle.ai>", "Andreas Motzfeldt", "Benjamin Starostka Jakobsen", "Jens Perregaard Thorsen"]
-
 packages = [
-    { include = 'vod_dataloaders' }
+    { include = 'vod_ops' }
 ]
 
 [tool.poetry.dependencies]
@@ -20,3 +20,4 @@ loguru = "^0.7.0"
 vod-configs = "*"
 vod-tools = "*"
 vod-types = "*"
+vod-dataloaders = "*"

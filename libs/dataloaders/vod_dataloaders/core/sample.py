@@ -3,15 +3,15 @@ import dataclasses
 import numba
 import numpy as np
 import numpy.typing as npt
-import vod_types as vt
 from vod_dataloaders.core import numpy_ops as npo
+from vod_types.retrieval import RetrievalBatch
 
 
 @dataclasses.dataclass(frozen=True)
 class PrioritySampledSections:
     """A holder for the samples and the log-weights."""
 
-    batch: vt.RetrievalBatch
+    batch: RetrievalBatch
     log_weights: np.ndarray
     max_sampling_id: np.ndarray
     lse_pos: np.ndarray
@@ -21,7 +21,7 @@ class PrioritySampledSections:
 
 def sample_search_results(
     *,
-    search_results: vt.RetrievalBatch,
+    search_results: RetrievalBatch,
     raw_scores: dict[str, np.ndarray],
     total: None | int,
     max_pos_sections: None | int,
@@ -71,7 +71,7 @@ def sample_search_results(
     max_sampling_id = np.sum(larger_than_min_sampled.astype(np.float32), axis=-1)
 
     return PrioritySampledSections(
-        batch=vt.RetrievalBatch(
+        batch=RetrievalBatch(
             indices=indices,
             scores=scores,
             labels=labels,

@@ -10,7 +10,6 @@ import lightning as L
 import rich
 import torch
 import transformers
-import vod_types as vt
 from tensorstore import _tensorstore as ts
 from transformers import BertModel
 from vod_ops import Predict
@@ -64,7 +63,7 @@ def run(args: Args) -> None:
     model = Encoder(bert)
     model.eval()
     squad_: datasets.Dataset = datasets.load_dataset("squad", split=args.split)  # type: ignore
-    squad: vt.DictsSequence = squad_
+    squad: DictsSequence = squad_
     rich.print(squad)
 
     # collate_fn

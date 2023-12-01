@@ -8,9 +8,10 @@ from hydra.utils import instantiate
 from loguru import logger
 from peft import mapping as peft_mapping
 from peft import utils as peft_utils
-from vod_models import vod_encoder
+from vod_models.encoder import VodEncoderInputType
+from vod_configs.support import TweaksConfig
 
-FIELD_MAPPING: dict[vod_encoder.VodEncoderInputType, str] = {"query": "query_encoding", "section": "section_encoding"}
+FIELD_MAPPING: dict[VodEncoderInputType, str] = {"query": "query_encoding", "section": "section_encoding"}
 
 
 def maybe_instantiate(conf_or_obj: typ.Any | omg.DictConfig, **kws: typ.Any) -> object:  # noqa: ANN401
@@ -22,7 +23,7 @@ def maybe_instantiate(conf_or_obj: typ.Any | omg.DictConfig, **kws: typ.Any) -> 
 
 def apply_tweaks(  # noqa: C901, PLR0912
     module: torch.nn.Module | transformers.PreTrainedModel,
-    tweaks: None | vod_configs.support.TweaksConfig,
+    tweaks: None | TweaksConfig,
 ) -> torch.nn.Module:
     """Apply training tweaks to the model."""
     if tweaks is None:

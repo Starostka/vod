@@ -1,7 +1,6 @@
 import math
 
 import numpy as np
-import vod_types as vt
 from vod_dataloaders.core import numpy_ops
 
 from .sample import PrioritySampledSections
@@ -38,7 +37,7 @@ def flatten_samples(samples: PrioritySampledSections, padding: bool = True) -> P
         flat_raw_scores[key] = numpy_ops.gather_values_by_indices(unique_indices_, indices, samples.raw_scores[key])
 
     return PrioritySampledSections(
-        batch=vt.RetrievalBatch(
+        batch=RetrievalBatch(
             indices=unique_indices,
             scores=scores,
             labels=labels,

@@ -5,6 +5,8 @@ import pydantic
 import vod_configs
 from typing_extensions import Self
 
+from vod_configs.trainer import TrainerConfig
+
 
 class TrainerState(pydantic.BaseModel):
     """Holds the state of the trainer."""
@@ -20,10 +22,10 @@ class TrainerState(pydantic.BaseModel):
     epoch: int
     update_steps: list[int]
     must_stop: bool = False
-    config: vod_configs.TrainerConfig
+    config: TrainerConfig
 
     @classmethod
-    def from_config(cls: type[Self], config: vod_configs.TrainerConfig) -> Self:
+    def from_config(cls: type[Self], config: TrainerConfig) -> Self:
         """Create a new `TrainerState` from a config."""
         return cls(
             step=0,

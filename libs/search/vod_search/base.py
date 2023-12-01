@@ -8,8 +8,9 @@ import typing as typ
 
 import loguru
 import numpy as np
-import vod_types as vt
 from typing_extensions import Self
+
+from vod_types.retrieval import RetrievalBatch
 
 ShardName: typ.TypeAlias = str
 SubsetId: typ.TypeAlias = str
@@ -52,7 +53,7 @@ class SearchClient(abc.ABC):
         ids: None | list[list[SectionId]] = None,
         shard: None | list[ShardName] = None,
         top_k: int = 3,
-    ) -> vt.RetrievalBatch:
+    ) -> RetrievalBatch:
         """Search the server given a batch of text and/or vectors."""
         raise NotImplementedError()
 
@@ -65,7 +66,7 @@ class SearchClient(abc.ABC):
         ids: None | list[list[SectionId]] = None,
         shard: None | list[ShardName] = None,
         top_k: int = 3,
-    ) -> vt.RetrievalBatch:
+    ) -> RetrievalBatch:
         """Search the server given a batch of text and/or vectors."""
         return self.search(
             text=text,

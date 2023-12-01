@@ -10,7 +10,8 @@ import lightning as L
 import omegaconf as omg
 import torch
 import transformers
-import vod_configs
+
+from vod_configs.dataloaders import TokenizerConfig
 from lightning.fabric import wrappers as fabric_wrappers
 from lightning_utilities.core.rank_zero import rank_zero_only
 from loguru import logger
@@ -142,7 +143,7 @@ def _export_module(
 
     # Handle the tokenizer
     if not isinstance(tokenizer, transformers.PreTrainedTokenizerBase):
-        tokenizer = vod_configs.TokenizerConfig(**tokenizer).instantiate()  # type: ignore
+        tokenizer = TokenizerConfig(**tokenizer).instantiate()  # type: ignore
     logger.info(f"Exporting tokenizer `{type(tokenizer).__name__}` to `{output_dir.absolute()}` (HF pretrained)")
     tokenizer.save_pretrained(output_dir)
 

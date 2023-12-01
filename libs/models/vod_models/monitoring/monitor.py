@@ -2,7 +2,7 @@ import abc
 import typing as typ
 
 import torch
-import vod_types as vt
+from vod_types.batch import RealmBatch, RealmOutput
 
 from .aggregator import Agregator, MeanAggregator
 from .functional import (
@@ -83,12 +83,12 @@ class RetrievalMonitor(Monitor):
     @torch.no_grad()
     def update(
         self,
-        batch: vt.RealmBatch | typ.Mapping[str, typ.Any],
-        model_output: vt.RealmOutput | typ.Mapping[str, typ.Any],
+        batch: RealmBatch | typ.Mapping[str, typ.Any],
+        model_output: RealmOutput | typ.Mapping[str, typ.Any],
     ) -> None:
         """Compute metrics and update the aggregators."""
-        batch = vt.RealmBatch.cast(batch)
-        model_output = vt.RealmOutput.cast(model_output)
+        batch = RealmBatch.cast(batch)
+        model_output = RealmOutput.cast(model_output)
 
         # Rank the relevances and scores by decreasing score value
         ranked_relevances, ranked_scores, n_positives = prepare_for_metric_computation(

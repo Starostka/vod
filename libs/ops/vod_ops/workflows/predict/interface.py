@@ -13,8 +13,11 @@ from omegaconf import DictConfig
 from rich.progress import track
 from torch.utils.data.dataloader import default_collate
 import vod_configs
+from vod_configs.dataloaders import DataLoaderConfig
 from vod_tools.ts_factory.ts_factory import TensorStoreFactory
-import vod_types as vt
+from vod_types.functional import Collate
+from vod_types.protocols import EncoderLike
+from vod_types.sequence import Sequence
 
 from .compute import LoaderKwargs, compute_and_store_predictions
 from .fingerprint import make_predict_fingerprint
@@ -39,10 +42,10 @@ class Predict:
     def __init__(
         self,
         *,
-        dataset: vt.Sequence,
+        dataset: Sequence,
         save_dir: str | pathlib.Path,
-        model: torch.nn.Module | vt.EncoderLike,
-        collate_fn: vt.Collate = default_collate,  # type: ignore
+        model: torch.nn.Module | EncoderLike,
+        collate_fn: Collate = default_collate,  # type: ignore
         model_output_key: None | str = None,
     ):
         self._dataset = dataset
@@ -217,14 +220,14 @@ class Predict:
 
 
 def predict(  # noqa: PLR0913
-    dataset: vt.Sequence,
+    dataset: Sequence,
     *,
     fabric: L.Fabric,
     cache_dir: str | Path,
-    model: torch.nn.Module | vt.EncoderLike,
-    collate_fn: vt.Collate,
+    model: torch.nn.Module | EncoderLike,
+    collate_fn: Collate,
     model_output_key: None | str = None,
-    loader_kwargs: None | dict[str, typ.Any] | DictConfig | vod_configs.DataLoaderConfig = None,
+    loader_kwargs: None | dict[str, typ.Any] | DictConfig | DataLoaderConfig = None,
     ts_kwargs: None | dict[str, typ.Any] = None,
     validate_store: bool | int = True,
     open_mode: None | typ.Literal["x", "r", "a"] = None,
@@ -255,11 +258,11 @@ def predict(  # noqa: PLR0913
 
 
 def _infer_vector_shape(
-    model: torch.nn.Module | vt.EncoderLike,
+    model: torch.nn.Module | EncoderLike,
     model_output_key: None | str,
     *,
-    dataset: vt.Sequence,
-    collate_fn: vt.Collate,
+    dataset: Sequence,
+    collate_fn: Collate,
 ) -> tuple[int, ...]:
     try:
         vector_shape = model.get_encoding_shape()  # type: ignore

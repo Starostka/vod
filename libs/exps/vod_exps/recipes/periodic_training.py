@@ -7,7 +7,6 @@ import torch
 import vod_configs
 import vod_datasets
 import vod_models
-import vod_types as vt
 from lightning.fabric.wrappers import is_wrapped
 from loguru import logger
 from vod_exps.structconf import Experiment
@@ -16,6 +15,7 @@ from vod_ops.workflows.benchmark import benchmark_retrieval
 from vod_ops.workflows.compute import compute_vectors
 from vod_ops.workflows.train import spawn_search_and_train
 from vod_tools import cache_manager
+from vod_types.lazy_array import Array
 
 
 def periodic_training(
@@ -103,7 +103,7 @@ def _compute_all_vectors(
     module: vod_models.VodSystem,
     config: Experiment,
     cache_dir: pathlib.Path,
-) -> dict[vod_configs.DatasetConfig, vt.Array]:
+) -> dict[vod_configs.DatasetConfig, Array]:
     module.eval()
     return {
         cfg: compute_vectors(

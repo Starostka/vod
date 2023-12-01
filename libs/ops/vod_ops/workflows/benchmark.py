@@ -4,13 +4,16 @@ import pathlib
 import lightning as L
 import numpy as np
 import torch
-import vod_configs
-import vod_dataloaders
-import vod_search
-import vod_types as vt
 from loguru import logger
+
+from vod_configs.dataloaders import RealmCollateConfig, DataLoaderConfig
+from vod_configs.trainer import BenchmarkConfig
+
+from vod_dataloaders.realm_dataloader import RealmDataloader
 from vod_models.monitoring import RetrievalMonitor
 from vod_ops.utils import helpers, schemas
+
+from vod_search.factory import build_hybrid_search_engine
 from vod_tools.misc.config import flatten_dict
 from vod_tools.misc.progress import IterProgressBar
 
@@ -23,15 +26,15 @@ def benchmark_retrieval(  # noqa: PLR0913
     sections: schemas.SectionsWithVectors,
     *,
     fabric: L.Fabric,
-    config: vod_configs.BenchmarkConfig,
-    collate_config: vod_configs.RealmCollateConfig,
-    dataloader_config: vod_configs.DataLoaderConfig,
+    config: BenchmarkConfig,
+    collate_config: RealmCollateConfig,
+    dataloader_config: DataLoaderConfig,
     cache_dir: pathlib.Path,
     score_keys: None | list[str] = None,
     device: None | torch.device = None,
 ) -> dict[str, float]:
     """Evaluate the cached retriever by benchmarking the scores given by the Realm dataloader."""
-    with vod_search.build_hybrid_search_engine(
+    with build_hybrid_search_engine(
         sections=sections.sections,
         vectors=sections.vectors,
         configs=sections.search_configs,
@@ -47,7 +50,7 @@ def benchmark_retrieval(  # noqa: PLR0913
         search_client = master.get_client()
 
         # Instantiate the dataloader
-        dataloader = vod_dataloaders.RealmDataloader.factory(
+        dataloader = RealmDataloader.factory(
             queries=queries.queries,
             vectors=queries.vectors,
             search_client=search_client,
@@ -107,7 +110,7 @@ def benchmark_retrieval(  # noqa: PLR0913
                             continue
                         monitor.update(
                             batch=batch,
-                            model_output=vt.RealmOutput(
+                            model_output=RealmOutput(
                                 loss=None,
                                 retriever_scores=retriever_scores,
                             ),

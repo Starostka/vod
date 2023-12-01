@@ -8,16 +8,19 @@ import numpy as np
 import torch
 import transformers
 import vod_configs
+from vod_configs.dataloaders import RealmCollateConfig
 import vod_search
-import vod_types as vt
 from loguru import logger
 from vod_dataloaders.core import numpy_ops
+from vod_search.hybrid_search import HybridSearchClient
 from vod_tools.misc.exceptions import dump_exceptions_to_file
 from vod_tools.misc.template import Template
+from vod_types.batch import RealmBatch
+from vod_types.functional import Collate
+from vod_types.retrieval import RetrievalBatch
+from vod_types.sequence import DictsSequence
+from vod_dataloaders.core.search import async_hybrid_search
 
-from libs.dataloaders.src.core import (
-    search,
-)
 from .core import in_batch_negatives, sample, utils
 from .tokenizer_collate import render_template_and_tokenize
 
@@ -46,7 +49,7 @@ class RealmTemplates:
     lm: Template
 
 
-class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
+class RealmCollate(Collate[typ.Any, torch.Tensor | list[int | float | str]]):
     """Collate function for retrieval-augmented language modeling tasks.
 
     This function is used to convert a list of queries into a batch.
@@ -64,14 +67,14 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
     templates: RealmTemplates
     tokenizer_encoder: transformers.PreTrainedTokenizerBase
     tokenizer_lm: None | transformers.PreTrainedTokenizerBase
-    search_client: vod_search.HybridSearchClient
-    config: vod_configs.RealmCollateConfig
+    search_client: HybridSearchClient
+    config: RealmCollateConfig
 
     def __init__(
         self,
         *,
-        search_client: vod_search.HybridSearchClient,
-        config: vod_configs.RealmCollateConfig,
+        search_client: HybridSearchClient,
+        config: RealmCollateConfig,
         parameters: None | typ.MutableMapping = None,
     ):
         self.search_client = search_client
@@ -92,12 +95,12 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
             )
 
     @property
-    def sections(self) -> vt.DictsSequence:
+    def sections(self) -> DictsSequence:
         """Get all indexed sections."""
         return self.search_client.sections
 
     @dump_exceptions_to_file
-    def __call__(self, inputs: list[dict[str, typ.Any]], **kws: typ.Any) -> vt.RealmBatch:
+    def __call__(self, inputs: list[dict[str, typ.Any]], **kws: typ.Any) -> RealmBatch:
         """Collate function for retrieval tasks. This function is used to convert a list of examples into a batch."""
         start_time = time.perf_counter()
         input_batch = utils.pack_examples(inputs)  # list[dict] -> dict[list]
@@ -183,7 +186,7 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
         ]
 
         # Make the final batch and potentially cast attributes to `torch.Tensor`
-        input_batch = vt.RealmBatch(
+        input_batch = RealmBatch(
             **(tokenized_lm_texts or {}),
             **tokenized_queries,
             **tokenized_sections,
@@ -207,7 +210,7 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
         self,
         batch: dict[str, typ.Any],
         top_k: int,
-    ) -> tuple[vod_search.RetrievalBatch, dict[str, np.ndarray]]:
+    ) -> tuple[RetrievalBatch, dict[str, np.ndarray]]:
         """Search the batch of queries and return the top `top_k` results."""
         # Get the query ids
         query_subset_ids = batch[SUBSET_IDS]
@@ -230,7 +233,7 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
             query_vectors = None
 
         # Async search the query text using `search_client.async_search`
-        return search.async_hybrid_search(
+        return async_hybrid_search(
             text=query_text,
             shards=batch[vod_configs.TARGET_SHARD_KEY],
             vector=query_vectors,
@@ -380,7 +383,7 @@ def _get_extra_attributes(
 
 def _validate_parameters(
     parameters: typ.MutableMapping,
-    search_client: vod_search.HybridSearchClient,
+    search_client: HybridSearchClient,
     default_value: float = 1.0,
 ) -> typ.MutableMapping:
     """Validate the parameters against the client names."""
@@ -407,7 +410,7 @@ def _extract_relevances(batch: dict[str, typ.Any]) -> list[dict[str, float]]:
     return relevances
 
 
-def _fecth_section_content(sections: vt.DictsSequence, idx: list[int]) -> dict[str, list[typ.Any]]:
+def _fecth_section_content(sections: DictsSequence, idx: list[int]) -> dict[str, list[typ.Any]]:
     if isinstance(sections, datasets.Dataset):
         return sections[idx]
     raise NotImplementedError(f"Unsupported type: {type(sections)}")

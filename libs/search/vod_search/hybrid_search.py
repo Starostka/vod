@@ -3,9 +3,10 @@ import copy
 import typing as typ
 
 import numpy as np
-import vod_types as vt
 from typing_extensions import Self
 
+from vod_types.retrieval import RetrievalBatch
+from vod_types.sequence import DictsSequence
 from .base import (
     SearchClient,
     SearchMaster,
@@ -22,13 +23,13 @@ class HybridSearchClient(SearchClient):
 
     clients: dict[ClientName, SearchClient]
     _shard_list: None | list[ShardName]
-    _sections: None | vt.DictsSequence
+    _sections: None | DictsSequence
 
     def __init__(
         self,
         clients: dict[ClientName, SearchClient],
         shard_list: None | list[ShardName] = None,
-        sections: None | vt.DictsSequence = None,
+        sections: None | DictsSequence = None,
     ) -> None:
         self.clients = clients
         self._shard_list = shard_list
@@ -42,7 +43,7 @@ class HybridSearchClient(SearchClient):
         return copy.copy(self._shard_list)
 
     @property
-    def sections(self) -> vt.DictsSequence:
+    def sections(self) -> DictsSequence:
         """Get the sections."""
         if self._sections is None:
             raise ValueError("The sections have not been set.")
@@ -69,7 +70,7 @@ class HybridSearchClient(SearchClient):
         ids: None | list[list[SectionId]] = None,
         shard: None | list[ShardName] = None,
         top_k: int = 3,
-    ) -> dict[ClientName, vt.RetrievalBatch]:
+    ) -> dict[ClientName, RetrievalBatch]:
         """Search the server given a batch of text and/or vectors."""
         return {
             name: client.search(
@@ -92,10 +93,10 @@ class HybridSearchClient(SearchClient):
         ids: None | list[list[SectionId]] = None,
         shard: None | list[ShardName] = None,
         top_k: int = 3,
-    ) -> dict[ClientName, vt.RetrievalBatch]:
+    ) -> dict[ClientName, RetrievalBatch]:
         """Search the server given a batch of text and/or vectors."""
 
-        def search_fn(args: dict[str, typ.Any]) -> vt.RetrievalBatch:
+        def search_fn(args: dict[str, typ.Any]) -> RetrievalBatch:
             client = args.pop("client")
             return client.search(**args)
 
@@ -127,7 +128,7 @@ class HyrbidSearchMaster(SearchMaster):
 
     servers: dict[str, SearchMaster]
     _shard_list: None | list[ShardName]
-    _sections: None | vt.DictsSequence
+    _sections: None | DictsSequence
 
     def __init__(
         self,
@@ -135,7 +136,7 @@ class HyrbidSearchMaster(SearchMaster):
         skip_setup: bool = False,
         free_resources: bool = False,
         shard_list: None | list[ShardName] = None,
-        sections: None | vt.DictsSequence = None,
+        sections: None | DictsSequence = None,
     ):
         """Initialize the search master."""
         self.skip_setup = skip_setup
@@ -152,7 +153,7 @@ class HyrbidSearchMaster(SearchMaster):
         return copy.copy(self._shard_list)
 
     @property
-    def sections(self) -> vt.DictsSequence:
+    def sections(self) -> DictsSequence:
         """Get the sections."""
         if self._sections is None:
             raise ValueError("The sections have not been set.")

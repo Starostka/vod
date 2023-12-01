@@ -4,12 +4,13 @@ import typing as typ
 
 import lightning as L
 import torch
-import vod_types as vt
+from vod_types.lazy_array import as_lazy_array
+from vod_types.sequence import Sequence
 from lightning.fabric import wrappers as fabric_wrappers
 from loguru import logger
 
 T = typ.TypeVar("T")
-D = typ.TypeVar("D", bound=vt.Sequence)
+D = typ.TypeVar("D", bound=Sequence)
 P = typ.ParamSpec("P")
 
 
@@ -25,7 +26,7 @@ def none_ok(func: typ.Callable[P, T]) -> typ.Callable[P, None | T]:
     return wrapper
 
 
-maybe_as_lazy_array = none_ok(vt.as_lazy_array)
+maybe_as_lazy_array = none_ok(as_lazy_array)
 
 
 def is_engine_enabled(parameters: None | typ.MutableMapping, engine: str) -> bool:

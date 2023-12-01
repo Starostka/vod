@@ -1,11 +1,11 @@
 import numpy as np
+from vod_types.retrieval import RetrievalBatch
 import pytest
-import vod_types as vt
 from vod_dataloaders.core.merge import merge_search_results
 
 
 @pytest.fixture
-def search_results(seed: int, seq_length: int, n_values: int) -> dict[str, vt.RetrievalBatch]:
+def search_results(seed: int, seq_length: int, n_values: int) -> dict[str, RetrievalBatch]:
     rgn = np.random.default_rng(seed)
     alen = seq_length // 2
     blen = seq_length - alen
@@ -19,7 +19,7 @@ def search_results(seed: int, seq_length: int, n_values: int) -> dict[str, vt.Re
     b_indices = rgn.choice(ids, size=(blen,), replace=False)
 
     return {
-        "a": vt.RetrievalBatch.cast(
+        "a": RetrievalBatch.cast(
             indices=a_indices[None, :],
             labels=[[labels[i] for i in a_indices]],
             scores=rgn.uniform(
@@ -28,7 +28,7 @@ def search_results(seed: int, seq_length: int, n_values: int) -> dict[str, vt.Re
                 size=(1, alen),
             ),
         ),
-        "b": vt.RetrievalBatch.cast(
+        "b": RetrievalBatch.cast(
             indices=b_indices[None, :],
             labels=[[labels[i] for i in b_indices]],
             scores=rgn.uniform(
@@ -52,7 +52,7 @@ def weights(seed: int) -> dict[str, float]:
 @pytest.mark.parametrize("seed", list(range(10)))
 @pytest.mark.parametrize("seq_length", [10, 30])
 @pytest.mark.parametrize("n_values", [300, 1000])
-def test_merge_search_results(search_results: dict[str, vt.RetrievalBatch], weights: dict[str, float]) -> None:
+def test_merge_search_results(search_results: dict[str, RetrievalBatch], weights: dict[str, float]) -> None:
     """Test merging multiple search results.
 
     Expected the output scores to be the weighted sum of the input scores.

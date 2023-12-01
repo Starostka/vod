@@ -2,7 +2,8 @@ import abc
 
 import torch
 import torch.nn
-import vod_types as vt
+
+from vod_types.batch import RealmBatch, RealmOutput
 
 
 class Gradients(abc.ABC):
@@ -12,10 +13,10 @@ class Gradients(abc.ABC):
     def __call__(
         self,
         *,
-        batch: vt.RealmBatch,
+        batch: RealmBatch,
         query_encoding: torch.Tensor,  # the encoding of the queries
         section_encoding: torch.Tensor,  # the encoding of the documents/sections
         lm_logits: None | torch.Tensor,  # the logits of the language model
-    ) -> vt.RealmOutput:
+    ) -> RealmOutput:
         """Compute the gradients/loss."""
         raise NotImplementedError
