@@ -4,8 +4,7 @@ import typing as typ
 import pydantic
 import transformers
 from typing_extensions import Self, Type
-
-from utils.base import StrictModel
+from vod_configs.utils.base import StrictModel
 
 
 class DataLoaderConfig(StrictModel):

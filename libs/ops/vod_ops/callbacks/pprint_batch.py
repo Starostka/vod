@@ -7,9 +7,10 @@ import lightning as L
 import rich
 import torch
 import transformers
-import vod_configs
 from lightning_utilities.core.rank_zero import rank_zero_only
 from loguru import logger
+
+from vod_configs.dataloaders import TokenizerConfig
 from vod_tools import pretty
 
 from .base import Callback
@@ -49,7 +50,7 @@ class PprintBatch(Callback):
         validation: bool = False,
         testing: bool = False,
         is_retrieval: bool = False,
-        tokenizer_encoder: transformers.PreTrainedTokenizerBase | vod_configs.TokenizerConfig | dict[str, typ.Any],
+        tokenizer_encoder: transformers.PreTrainedTokenizerBase | TokenizerConfig | dict[str, typ.Any],
     ) -> None:
         super().__init__()
         self.output_file = pathlib.Path(output_file) if output_file is not None else None
@@ -60,9 +61,9 @@ class PprintBatch(Callback):
         self.is_retrieval = is_retrieval
 
         # Encoder tokenizer for retrieval
-        if not isinstance(tokenizer_encoder, (transformers.PreTrainedTokenizerBase, vod_configs.TokenizerConfig)):
-            tokenizer_encoder = vod_configs.TokenizerConfig(**tokenizer_encoder)
-        if isinstance(tokenizer_encoder, vod_configs.TokenizerConfig):
+        if not isinstance(tokenizer_encoder, (transformers.PreTrainedTokenizerBase, TokenizerConfig)):
+            tokenizer_encoder = TokenizerConfig(**tokenizer_encoder)
+        if isinstance(tokenizer_encoder, TokenizerConfig):
             tokenizer_encoder = tokenizer_encoder.instantiate()
         self.tokenizer_encoder = tokenizer_encoder
 

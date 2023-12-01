@@ -4,16 +4,18 @@ import typing as typ
 import datasets
 import numpy as np
 import torch
-import vod_types as vt
 from datasets import fingerprint
 from vod_tools.misc.tensor_tools import serialize_tensor
+from vod_types.functional import Collate
+from vod_types.protocols import SupportsGetFingerprint
+from vod_types.sequence import Sequence
 
 
 def make_predict_fingerprint(
     *,
-    dataset: typ.Any | vt.Sequence | vt.SupportsGetFingerprint,  # noqa: ANN401
-    collate_fn: typ.Any | vt.Collate | vt.SupportsGetFingerprint,  # noqa: ANN401
-    model: typ.Any | torch.nn.Module | vt.SupportsGetFingerprint,  # noqa: ANN401
+    dataset: typ.Any | Sequence | SupportsGetFingerprint,  # noqa: ANN401
+    collate_fn: typ.Any | Collate | SupportsGetFingerprint,  # noqa: ANN401
+    model: typ.Any | torch.nn.Module | SupportsGetFingerprint,  # noqa: ANN401
     model_output_key: None | str = None,
 ) -> str:
     """Make a fingerprint for the `predict` operation."""
@@ -28,7 +30,7 @@ def make_predict_fingerprint(
 
 def use_get_fingerprint_if_available(
     fun: typ.Callable[[typ.Any], str]
-) -> typ.Callable[[typ.Any | vt.SupportsGetFingerprint], str]:
+) -> typ.Callable[[typ.Any | SupportsGetFingerprint], str]:
     """Decorate a `get_fingerprint` function to first try call `x.get_fingerprint()`."""
 
     def wrapper(x: typ.Any) -> str:  # noqa: ANN401
@@ -63,7 +65,7 @@ def _get_collate_fn_fingerprint(collate_fn: typ.Any) -> str:  # noqa: ANN401
 
 @use_get_fingerprint_if_available
 def _get_dset_fingerprint(
-    dataset: vt.Sequence | datasets.Dataset,
+    dataset: Sequence | datasets.Dataset,
     max_samples: float = math.inf,
 ) -> str:
     if isinstance(dataset, datasets.Dataset):

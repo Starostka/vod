@@ -13,7 +13,6 @@ import elasticsearch as es
 import numpy as np
 import rich
 import rich.progress
-import vod_types as vt
 from elasticsearch import helpers as es_helpers
 from loguru import logger
 from vod_configs.utils.es_body import (
@@ -87,7 +86,7 @@ class ElasticsearchClient(base.SearchClient):
         ids: None | list[list[base.SectionId]] = None,
         shard: None | list[base.ShardName] = None,  # noqa: ARG002
         top_k: int = 3,
-    ) -> vt.RetrievalBatch:
+    ) -> RetrievalBatch:
         """Search elasticsearch for the batch of text queries using `msearch`. NOTE: `vector` is not used here."""
         start_time = time.time()
         if self.support_subsets and subset_ids is None:
@@ -144,7 +143,7 @@ class ElasticsearchClient(base.SearchClient):
         scores = np.stack(scores)
         labels = (scores > -np.inf).astype(np.int64) if ids is not None else None
 
-        return vt.RetrievalBatch(
+        return RetrievalBatch(
             indices=indices,
             scores=scores,
             labels=labels,

@@ -4,7 +4,6 @@ import dataclasses
 import typing as typ
 
 import numpy as np
-import vod_types as vt
 from typing_extensions import Self
 from vod_search.base import (
     SearchClient,
@@ -71,7 +70,7 @@ class ShardedSearchClient(typ.Generic[Sc_co], SearchClient):
         ids: None | list[list[SectionId]] = None,
         shard: None | list[ShardName] = None,
         top_k: int = 3,
-    ) -> vt.RetrievalBatch:
+    ) -> RetrievalBatch:
         """Search the server given a batch of text and/or vectors."""
         if shard is None:
             raise ValueError("Must specify `shard`")
@@ -114,7 +113,7 @@ class ShardedSearchClient(typ.Generic[Sc_co], SearchClient):
         subset_ids: None | list[list[SubsetId]] = None,
         ids: None | list[list[SectionId]] = None,
         top_k: int = 3,
-    ) -> vt.RetrievalBatch:
+    ) -> RetrievalBatch:
         """Search the server given a batch of text and/or vectors."""
         if shard is None:
             raise ValueError("Must specify `shard`")
@@ -142,7 +141,7 @@ class ShardedSearchClient(typ.Generic[Sc_co], SearchClient):
             for shard_name in shard_names
         ]
 
-        def _search_fn(payload: dict[str, typ.Any]) -> vt.RetrievalBatch:
+        def _search_fn(payload: dict[str, typ.Any]) -> RetrievalBatch:
             """Search a single shard."""
             result = payload["search_shard"].search(
                 text=payload["query"]["text"],
@@ -167,7 +166,7 @@ class ShardedSearchClient(typ.Generic[Sc_co], SearchClient):
         ]
 
         # Unpack the results
-        results_by_shard: dict[ShardName, vt.RetrievalBatch] = dict(zip(shard_names, await asyncio.gather(*futures)))
+        results_by_shard: dict[ShardName, RetrievalBatch] = dict(zip(shard_names, await asyncio.gather(*futures)))
 
         # Gather the results and stack them
         return _gather_results(lookup=sharded_queries.lookup, results=results_by_shard)
@@ -197,10 +196,10 @@ def _scatter_queries(
 
 def _gather_results(
     lookup: list[tuple[ShardName, int]],
-    results: dict[ShardName, vt.RetrievalBatch],
-) -> vt.RetrievalBatch:
+    results: dict[ShardName, RetrievalBatch],
+) -> RetrievalBatch:
     gathered_results = [results[name][j] for name, j in lookup]
-    return vt.RetrievalBatch.stack_samples(gathered_results)
+    return RetrievalBatch.stack_samples(gathered_results)
 
 
 class ShardedSearchMaster(typ.Generic[Sm_co, Sc_co], SearchMaster[ShardedSearchClient]):

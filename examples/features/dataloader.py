@@ -12,10 +12,10 @@ import vod_configs as vc
 import vod_dataloaders as vdl
 import vod_datasets as vds
 import vod_search as vs
-import vod_types as vt
 from rich.progress import track
 from vod_ops import Predict
 from vod_tools import arguantic, pretty
+from vod_types.lazy_array import as_lazy_array
 
 dotenv.load_dotenv(str(pathlib.Path(__file__).parent / ".predict.env"))
 
@@ -140,7 +140,7 @@ def run(args: Args) -> None:
         # 4. Spin up a hybrid search engine
         with vs.build_hybrid_search_engine(
             sections={args.dset: sections},  # {shard_id : dataset}
-            vectors={args.dset: vt.as_lazy_array(section_vectors)},  # {shard_id : vectors}
+            vectors={args.dset: as_lazy_array(section_vectors)},  # {shard_id : vectors}
             configs={
                 args.dset: vc.HybridSearchFactoryConfig(
                     engines={
@@ -159,7 +159,7 @@ def run(args: Args) -> None:
             # 5. Setup the VOD Realm dataloader
             realm_dataloader = vdl.RealmDataloader.factory(
                 queries={args.dset: (args.dset, queries)},  # {query_id : (shard_id, dataset)}
-                vectors={args.dset: vt.as_lazy_array(question_vectors)},  # {query_id : vectors}
+                vectors={args.dset: as_lazy_array(question_vectors)},  # {query_id : vectors}
                 search_client=search_client,
                 collate_config=vc.RealmCollateConfig(
                     templates=vc.TemplatesConfig(

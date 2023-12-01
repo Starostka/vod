@@ -4,7 +4,7 @@ import typing as typ
 
 import omegaconf as omg
 import torch
-import vod_types as vt
+from vod_types.batch import RealmBatch, RealmOutput
 from datasets.fingerprint import Hasher, hashregister
 from transformers import pytorch_utils, trainer_pt_utils
 from vod_models.support import maybe_instantiate
@@ -55,7 +55,7 @@ class VodSystem(torch.nn.Module):
         self,
         batch: typ.Mapping[str, torch.Tensor],
         **kws: typ.Any,
-    ) -> vt.RealmOutput:  # noqa: ARG002
+    ) -> RealmOutput:  # noqa: ARG002
         """Run a forward pass and compute the gradients."""
         ...
 

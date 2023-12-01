@@ -1,7 +1,7 @@
 import typing
 
 import datasets
-from vod_configs import DatasetLoader
+from vod_configs.datasets import BaseDatasetConfig, DatasetConfig, DatasetLoader, QueriesDatasetConfig, SectionsDatasetConfig
 from vod_datasets import rosetta
 
 from .postprocessing import (
@@ -12,7 +12,7 @@ from .postprocessing import (
 
 
 def _load_one_dataset(
-    name_or_path: str | vod_configs.DatasetLoader,
+    name_or_path: str | DatasetLoader,
     subset: str | None = None,
     split: str | None = None,
     **kws: typing.Any,
@@ -29,18 +29,18 @@ def _load_one_dataset(
         return name_or_path(subset=subset, split=split, **kws)
     except Exception as e:
         raise RuntimeError(
-            f"Failed to use `{name_or_path}` as a callable following the `{vod_configs.DatasetLoader}` protocol."
+            f"Failed to use `{name_or_path}` as a callable following the `{DatasetLoader}` protocol."
         ) from e
 
 
-def _load_dataset_from_config(config: vod_configs.BaseDatasetConfig, **kws: typing.Any) -> datasets.Dataset:
+def _load_dataset_from_config(config: BaseDatasetConfig, **kws: typing.Any) -> datasets.Dataset:
     """Load the dataset, process it according to the prompt template and return a HF dataset."""
     subsets = config.subsets or [None]
     loaded_subsets = [_load_one_dataset(config.name_or_path, subset, split=config.split) for subset in subsets]
     return combine_datasets(loaded_subsets)
 
 
-def load_queries(config: vod_configs.QueriesDatasetConfig) -> datasets.Dataset:
+def load_queries(config: QueriesDatasetConfig) -> datasets.Dataset:
     """Load a queries dataset."""
     dset = _load_dataset_from_config(config)
     dset = rosetta.transform(dset, output="queries")
@@ -48,7 +48,7 @@ def load_queries(config: vod_configs.QueriesDatasetConfig) -> datasets.Dataset:
     return dset
 
 
-def load_sections(config: vod_configs.SectionsDatasetConfig) -> datasets.Dataset:
+def load_sections(config: SectionsDatasetConfig) -> datasets.Dataset:
     """Load a sections dataset."""
     dset = _load_dataset_from_config(config)
     dset = rosetta.transform(dset, output="sections")
@@ -56,16 +56,16 @@ def load_sections(config: vod_configs.SectionsDatasetConfig) -> datasets.Dataset
     return dset
 
 
-def load_dataset(config: vod_configs.DatasetConfig) -> datasets.Dataset:
+def load_dataset(config: DatasetConfig) -> datasets.Dataset:
     """Load a dataset."""
     if isinstance(
         config,
-        (vod_configs.QueriesDatasetConfig),
+        QueriesDatasetConfig,
     ):
         return load_queries(config)
     if isinstance(
         config,
-        (vod_configs.SectionsDatasetConfig),
+        SectionsDatasetConfig,
     ):
         return load_sections(config)
     raise TypeError(f"Unexpected config type `{type(config)}`")

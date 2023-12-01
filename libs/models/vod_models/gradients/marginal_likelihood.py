@@ -1,7 +1,7 @@
 import torch
 import torch.nn
-import vod_types as vt
-from vod_models.vod_gradients.retrieval import _compute_retriever_scores
+from vod_models.gradients.retrieval import _compute_retriever_scores
+from vod_types.batch import RealmBatch, RealmOutput
 
 from .base import Gradients
 
@@ -12,11 +12,11 @@ class MarginalLikelihoodGradients(Gradients):
     def __call__(
         self,
         *,
-        batch: vt.RealmBatch,
+        batch: RealmBatch,
         query_encoding: torch.Tensor,
         section_encoding: torch.Tensor,
         lm_logits: torch.Tensor,
-    ) -> vt.RealmOutput:
+    ) -> RealmOutput:
         """Compute the gradients/loss of Realm system using the marginal likelihood with the in-batch approximation."""
         # 1. Determine the masked sections
         is_padding = batch.section__score.isinf() & (batch.section__score < 0)
@@ -42,7 +42,7 @@ class MarginalLikelihoodGradients(Gradients):
         logp_x = torch.logsumexp(retriever_logprobs + logp_x__z, dim=-1)
         loss = -logp_x.mean()
 
-        return vt.RealmOutput(
+        return RealmOutput(
             loss=loss,
             retriever_scores=retriever_scores,
         )

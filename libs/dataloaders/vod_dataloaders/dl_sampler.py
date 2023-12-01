@@ -4,7 +4,8 @@ import typing as typ
 
 import omegaconf
 import vod_configs
-import vod_types as vt
+from vod_configs.dataloaders import SamplerFactoryConfig
+from vod_types.sequence import DictsSequence
 from torch.utils import data as torch_data
 from vod_tools.misc.config import maybe_cast_omegaconf
 
@@ -13,7 +14,7 @@ class DlSamplerFactory(abc.ABC):
     """Abstract class for dataloader samplers."""
 
     @abc.abstractmethod
-    def __call__(self, dataset: vt.DictsSequence) -> torch_data.WeightedRandomSampler:
+    def __call__(self, dataset: DictsSequence) -> torch_data.WeightedRandomSampler:
         """Return a `torch.utils.data.DataLoader` for the given dataset."""
         pass
 
@@ -26,7 +27,7 @@ class LookupDlSamplerFactory(DlSamplerFactory):
         self.lookup: dict[str, float] = maybe_cast_omegaconf(lookup)  # type: ignore
         self.default_weight = default_weight
 
-    def __call__(self, dataset: vt.DictsSequence) -> torch_data.WeightedRandomSampler:
+    def __call__(self, dataset: DictsSequence) -> torch_data.WeightedRandomSampler:
         """Return a `torch.utils.data.DataLoader` for the given dataset."""
         features = (row[self.key] for row in dataset)
         weights = [self.lookup.get(feature, self.default_weight) for feature in features]
@@ -43,7 +44,7 @@ class InverseFrequencyDlSamplerFactory(DlSamplerFactory):
     def __init__(self, key: str):
         self.key = key
 
-    def __call__(self, dataset: vt.DictsSequence) -> torch_data.WeightedRandomSampler:
+    def __call__(self, dataset: DictsSequence) -> torch_data.WeightedRandomSampler:
         """Return a `torch.utils.data.DataLoader` for the given dataset."""
         features = (row[self.key] for row in dataset)
         counts = collections.Counter(features)
@@ -61,7 +62,7 @@ class ProductDlSamplerFactory(DlSamplerFactory):
     def __init__(self, samplers: typ.Iterable[DlSamplerFactory]):
         self.samplers = samplers
 
-    def __call__(self, dataset: vt.DictsSequence) -> torch_data.WeightedRandomSampler:
+    def __call__(self, dataset: DictsSequence) -> torch_data.WeightedRandomSampler:
         """Return a `torch.utils.data.DataLoader` for the given dataset."""
         samplers = [sampler(dataset) for sampler in self.samplers]
         weights = [sampler.weights for sampler in samplers]
@@ -76,9 +77,9 @@ class ProductDlSamplerFactory(DlSamplerFactory):
 def dl_sampler_factory(
     config: typ.Mapping[str, typ.Any]
     | omegaconf.DictConfig
-    | vod_configs.SamplerFactoryConfig
+    | SamplerFactoryConfig
     | list[dict | omegaconf.DictConfig]
-    | list[vod_configs.SamplerFactoryConfig],
+    | list[SamplerFactoryConfig],
 ) -> DlSamplerFactory:
     """Return a dataloader sampler from the given config."""
     if isinstance(config, (omegaconf.DictConfig, omegaconf.ListConfig)):
@@ -87,8 +88,8 @@ def dl_sampler_factory(
     if isinstance(config, list):
         return ProductDlSamplerFactory([dl_sampler_factory(sub_config) for sub_config in config])
 
-    if not isinstance(config, vod_configs.SamplerFactoryConfig):
-        config = vod_configs.SamplerFactoryConfig(**config)  # type: ignore
+    if not isinstance(config, SamplerFactoryConfig):
+        config = SamplerFactoryConfig(**config)  # type: ignore
 
     if config.mode == "lookup":
         if config.lookup is None:

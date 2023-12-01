@@ -4,16 +4,11 @@ import datasets
 import pydantic
 from datasets import fingerprint
 from typing_extensions import Self, Type
-from misc.config import as_pyobj_validator
+from vod_tools.misc.config import as_pyobj_validator
 
-from .search import (
-    HybridSearchFactoryConfig,
-)
-from .support import (
-    SectioningConfig,
-)
-from .utils.base import StrictModel
-
+from vod_configs.search import HybridSearchFactoryConfig
+from vod_configs.support import SectioningConfig
+from vod_configs.utils.base import StrictModel
 
 @typ.runtime_checkable
 class DatasetLoader(typ.Protocol):

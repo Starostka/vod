@@ -2,21 +2,22 @@ import typing as typ
 
 import datasets
 import numpy as np
-import vod_configs
-import vod_search
-import vod_types as vt
+from vod_configs.dataloaders import RealmCollateConfig
+from vod_configs.static import TARGET_SHARD_KEY
+from vod_search.hybrid_search import HybridSearchClient
 from torch.utils import data as torch_data
 from torch.utils.data.dataloader import _worker_init_fn_t
 from typing_extensions import Self, Type
 from vod_dataloaders.core.utils import VECTOR_KEY
 from vod_dataloaders.dl_sampler import DlSamplerFactory
-from vod_search import ShardName
+from vod_search.base import ShardName
+from vod_types.sequence import DictsSequence, Sequence
 
 from .realm_collate import RealmCollate
 
 T = typ.TypeVar("T")
 K = typ.TypeVar("K")
-D = typ.TypeVar("D", bound=vt.Sequence)
+D = typ.TypeVar("D", bound=Sequence)
 
 
 class RealmDataloader(torch_data.DataLoader[dict[str, typ.Any]]):
@@ -26,11 +27,11 @@ class RealmDataloader(torch_data.DataLoader[dict[str, typ.Any]]):
     def factory(  # noqa: PLR0913, ANN206, D417
         cls: Type[Self],
         *,
-        queries: dict[K, tuple[ShardName, vt.DictsSequence]],
-        vectors: None | dict[K, vt.Sequence[np.ndarray]] = None,
+        queries: dict[K, tuple[ShardName, DictsSequence]],
+        vectors: None | dict[K, Sequence[np.ndarray]] = None,
         # Parameters for the Collate function
-        search_client: vod_search.HybridSearchClient,
-        collate_config: vod_configs.RealmCollateConfig,
+        search_client: HybridSearchClient,
+        collate_config: RealmCollateConfig,
         parameters: None | typ.MutableMapping = None,
         # Base `torch.utils.data.Dataloader` arguments
         batch_size: int | None = 1,
@@ -76,11 +77,11 @@ class RealmDataloader(torch_data.DataLoader[dict[str, typ.Any]]):
         # Augment the queries rows with
         #    the shard information (at key `TARGET_SHARD_KEY``)
         #    and cached vectors at key `VECTOR_KEY`.
-        queries_with_extras: list[vt.DictsSequence] = [
+        queries_with_extras: list[DictsSequence] = [
             _WithExtrasAndVectors(
                 dataset=dset,
                 vectors=vectors.get(key, None),
-                extras={vod_configs.TARGET_SHARD_KEY: shard},
+                extras={TARGET_SHARD_KEY: shard},
             )
             for key, (shard, dset) in queries.items()
         ]
@@ -118,7 +119,7 @@ class RealmDataloader(torch_data.DataLoader[dict[str, typ.Any]]):
         )
 
 
-class _WithExtrasAndVectors(vt.DictsSequence[T]):
+class _WithExtrasAndVectors(DictsSequence[T]):
     """A wrapper around a dataset to add extra fields and vectors to a sampled row."""
 
     __slots__ = ("dataset", "vectors", "vector_key", "extras")
@@ -126,8 +127,8 @@ class _WithExtrasAndVectors(vt.DictsSequence[T]):
     def __init__(
         self,
         *,
-        dataset: vt.DictsSequence,
-        vectors: None | vt.Sequence[np.ndarray],
+        dataset: DictsSequence,
+        vectors: None | Sequence[np.ndarray],
         vector_key: str = VECTOR_KEY,
         extras: dict[str, T],
     ) -> None:

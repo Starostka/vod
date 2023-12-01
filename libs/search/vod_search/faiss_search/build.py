@@ -1,16 +1,17 @@
 from typing import Optional
 
+from vod_types.sequence import Sequence
+
 import faiss
 import numpy as np
 import torch
 import vod_configs
-import vod_types as vt
 from loguru import logger
 from vod_search.faiss_search import build_gpu, support
 
 
 def build_faiss_index(
-    vectors: vt.Sequence[np.ndarray],
+    vectors: Sequence[np.ndarray],
     *,
     factory_string: str,
     train_size: Optional[int] = None,
@@ -49,7 +50,7 @@ def build_faiss_index(
 
 
 def _build_faiss_index_on_cpu(
-    vectors: vt.Sequence[np.ndarray],
+    vectors: Sequence[np.ndarray],
     *,
     factory_string: str,
     train_size: Optional[int] = None,
@@ -63,7 +64,7 @@ def _build_faiss_index_on_cpu(
         train_size = len(vectors)
 
     for i in range(0, len(vectors), train_size):
-        batch = vt.slice_arrays_sequence(vectors, slice(i, i + train_size))
+        batch = slice_arrays_sequence(vectors, slice(i, i + train_size))
         batch = np.asarray(batch).astype(np.float32)
         if i == 0:
             logger.info(f"Training faiss index on `{len(batch)}` vectors " f"({len(batch) / len(vectors):.2%} (cpu)")

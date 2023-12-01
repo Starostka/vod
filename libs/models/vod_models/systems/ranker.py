@@ -4,13 +4,13 @@ import typing as typ
 
 import omegaconf as omg
 import torch
-import vod_configs
-import vod_types as vt
+from vod_types.batch import RealmBatch, RealmOutput
+from vod_configs.support import TweaksConfig
 from datasets.fingerprint import Hasher, hashregister
 from transformers import modeling_outputs
-from vod_models import vod_encoder  # type: ignore
 from vod_models.support import FIELD_MAPPING, apply_tweaks
-from vod_models.vod_gradients import Gradients
+from vod_models.encoder import VodEncoder
+from vod_models.gradients import Gradients
 from vod_tools import fingerprint
 
 from .base import VodSystem
@@ -21,22 +21,22 @@ _FIELD_MAPPING_KEYS = sorted(FIELD_MAPPING.keys())
 class Ranker(VodSystem):
     """Deep ranking model using a Transformer encoder as a backbone."""
 
-    encoder: vod_encoder.VodEncoder
+    encoder: VodEncoder
 
     def __init__(
         self,
-        encoder: vod_encoder.VodEncoder,
+        encoder: VodEncoder,
         gradients: Gradients,
         optimizer: None | dict | omg.DictConfig | functools.partial = None,
         scheduler: None | dict | omg.DictConfig | functools.partial = None,
-        tweaks: None | dict | omg.DictConfig | vod_configs.TweaksConfig = None,
+        tweaks: None | dict | omg.DictConfig | TweaksConfig = None,
     ):
         super().__init__(optimizer=optimizer, scheduler=scheduler)
         self.gradients = gradients
 
         # Prepare the encoder with optional optimizations
-        if not isinstance(tweaks, vod_configs.TweaksConfig):
-            tweaks = vod_configs.TweaksConfig.parse(**tweaks)  # type: ignore
+        if not isinstance(tweaks, TweaksConfig):
+            tweaks = TweaksConfig.parse(**tweaks)  # type: ignore
 
         # NOTE: when using torch's DDP, both checkpointing and torch.compile()
         #       must be applied after the model is wrapped in DDP.
@@ -126,9 +126,9 @@ class Ranker(VodSystem):
 
     def evaluate(
         self,
-        batch: vt.RealmBatch,
+        batch: RealmBatch,
         **kws: typ.Any,
-    ) -> vt.RealmOutput:  # noqa: ARG002
+    ) -> RealmOutput:  # noqa: ARG002
         """Run a forward pass and compute the gradients."""
         encoded = self.encode(batch)
         return self.gradients(batch=batch, **encoded)

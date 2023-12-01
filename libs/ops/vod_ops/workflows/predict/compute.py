@@ -7,21 +7,24 @@ import omegaconf
 import pydantic
 import torch
 import vod_configs
-import vod_types as vt
 from lightning.fabric import wrappers as fabric_wrappers
 from loguru import logger
 from omegaconf import DictConfig
 from tensorstore import _tensorstore as ts
 from torch.utils import data as torch_data
 from typing_extensions import Self, Type, TypeAlias
+
+from vod_configs.dataloaders import DataLoaderConfig
 from vod_tools.misc.progress import IterProgressBar
+from vod_types.functional import Collate
+from vod_types.sequence import DictsSequence
 
 from .wrappers import PREDICT_IDX_COL_NAME, CollateWithIndices, WithIndices
 
-LoaderKwargs: TypeAlias = typ.Union[dict[str, typ.Any], DictConfig, vod_configs.DataLoaderConfig]
+LoaderKwargs: TypeAlias = typ.Union[dict[str, typ.Any], DictConfig, DataLoaderConfig]
 
 
-class DataLoaderForPredictKwargs(vod_configs.DataLoaderConfig):
+class DataLoaderForPredictKwargs(DataLoaderConfig):
     """Confiuguration for `torch.utils.data.Dataloader` for predictions."""
 
     @pydantic.field_validator("shuffle", mode="before")
@@ -50,9 +53,9 @@ class DataLoaderForPredictKwargs(vod_configs.DataLoaderConfig):
 
 def compute_and_store_predictions(
     fabric: L.Fabric,
-    dataset: vt.DictsSequence,
+    dataset: DictsSequence,
     model: torch.nn.Module,
-    collate_fn: vt.Collate,
+    collate_fn: Collate,
     store: ts.TensorStore,
     loader_kwargs: None | LoaderKwargs = None,
     model_output_key: None | str = None,
@@ -62,8 +65,8 @@ def compute_and_store_predictions(
         raise ValueError("The model must be wrapped with `lightning.fabric.wrappers`.")
 
     # wrap the dataset and collate_fn to include the indices
-    dset_with_ids: vt.DictsSequence = WithIndices(dataset)
-    collate_fn_with_ids: vt.Collate = CollateWithIndices(collate_fn)
+    dset_with_ids: DictsSequence = WithIndices(dataset)
+    collate_fn_with_ids: Collate = CollateWithIndices(collate_fn)
 
     # build the dataloader
     loader_kwargs = DataLoaderForPredictKwargs.instantiate(loader_kwargs)

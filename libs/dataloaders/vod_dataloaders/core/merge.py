@@ -1,14 +1,14 @@
 import numba
 import numpy as np
 import numpy.typing as npt
-import vod_types as vt
 from vod_dataloaders.core import numpy_ops as npo
+from vod_types.retrieval import RetrievalBatch
 
 
 def merge_search_results(
-    search_results: dict[str, vt.RetrievalBatch],
+    search_results: dict[str, RetrievalBatch],
     weights: None | dict[str, float] = None,
-) -> tuple[vt.RetrievalBatch, dict[str, npt.NDArray]]:
+) -> tuple[RetrievalBatch, dict[str, npt.NDArray]]:
     """Merge search results with weights."""
     if weights is None:
         weights = {k: 1.0 for k in search_results}
@@ -29,9 +29,9 @@ def merge_search_results(
 
 
 def _merge_n_search_results(
-    search_results: dict[str, vt.RetrievalBatch],
+    search_results: dict[str, RetrievalBatch],
     weights: dict[str, float],
-) -> tuple[vt.RetrievalBatch, dict[str, npt.NDArray]]:
+) -> tuple[RetrievalBatch, dict[str, npt.NDArray]]:
     keys = list(search_results.keys())
     first_result = search_results[keys[0]]
     first_weight = weights[keys[0]]
@@ -62,10 +62,10 @@ def _merge_n_search_results(
     return output, raw_scores
 
 
-def _merge_two_search_results(a: vt.RetrievalBatch, b: vt.RetrievalBatch) -> vt.RetrievalBatch:
+def _merge_two_search_results(a: RetrievalBatch, b: RetrievalBatch) -> RetrievalBatch:
     """Merge two search results."""
     scores, indices = _nopy_merge_two_search_results(a.scores, a.indices, b.scores, b.indices)
-    return vt.RetrievalBatch(scores=scores, indices=indices)
+    return RetrievalBatch(scores=scores, indices=indices)
 
 
 @numba.njit(fastmath=True, cache=npo.CACHE_NUMBA_JIT, nogil=True)

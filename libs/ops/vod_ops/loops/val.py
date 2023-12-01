@@ -6,13 +6,14 @@ import vod_models
 from rich import progress
 from torch.utils import data as torch_data
 from vod_models.monitoring import RetrievalMonitor
+from vod_models.systems import VodSystem
 from vod_ops.utils.format import format_pbar_info
 from vod_ops.utils.trainer_state import TrainerState
 
 
 @torch.no_grad()
 def validation_loop(
-    module: vod_models.VodSystem,
+    module: VodSystem,
     fabric: L.Fabric,
     state: TrainerState,
     val_dl: torch_data.DataLoader,

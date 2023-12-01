@@ -9,11 +9,20 @@ import torch
 import vod_configs
 import vod_dataloaders
 import vod_models
-import vod_search
 from loguru import logger
+
 from vod_ops.loops.train import training_loop
-from vod_ops.utils import helpers, schemas
-from vod_ops.utils.trainer_state import TrainerState
+from vod_ops.utils.schemas import QueriesWithVectors, SectionsWithVectors
+#from vod_ops.loops.train import training_loop
+#from vod_ops.utils import helpers, schemas
+#from vod_ops.utils.trainer_state import TrainerState
+
+from vod_ops.utils import TrainerState, helpers
+from vod_configs.dataloaders import RealmCollateConfig, DataLoaderConfig
+from vod_dataloaders.dl_sampler import DlSamplerFactory
+from vod_dataloaders.realm_dataloader import RealmDataloader
+from vod_models.systems import VodSystem
+from vod_search.factory import build_hybrid_search_engine
 
 K = typ.TypeVar("K")
 
@@ -22,18 +31,18 @@ def spawn_search_and_train(  # noqa: PLR0913
     state: TrainerState,
     *,
     # ML module & optimizer
-    module: vod_models.VodSystem,
+    module: VodSystem,
     optimizer: torch.optim.Optimizer,
     scheduler: None | torch.optim.lr_scheduler.LRScheduler = None,
     # Data
-    train_queries: schemas.QueriesWithVectors,
-    val_queries: schemas.QueriesWithVectors,
-    sections: schemas.SectionsWithVectors,
+    train_queries: QueriesWithVectors,
+    val_queries: QueriesWithVectors,
+    sections: SectionsWithVectors,
     # Configs
-    collate_config: vod_configs.RealmCollateConfig,
-    train_dataloader_config: vod_configs.DataLoaderConfig,
-    eval_dataloader_config: vod_configs.DataLoaderConfig,
-    dl_sampler: None | vod_dataloaders.DlSamplerFactory = None,
+    collate_config: RealmCollateConfig,
+    train_dataloader_config: DataLoaderConfig,
+    eval_dataloader_config: DataLoaderConfig,
+    dl_sampler: None | DlSamplerFactory = None,
     # Utils
     fabric: L.Fabric,
     cache_dir: pathlib.Path,
@@ -57,7 +66,7 @@ def spawn_search_and_train(  # noqa: PLR0913
         )
 
     barrier_fn("Init search engines..")
-    with vod_search.build_hybrid_search_engine(
+    with build_hybrid_search_engine(
         sections=sections.sections,
         vectors=sections.vectors,
         configs=sections.search_configs,
@@ -82,13 +91,13 @@ def spawn_search_and_train(  # noqa: PLR0913
             "parameters": parameters,
             "sampler": dl_sampler,
         }
-        train_dl = vod_dataloaders.RealmDataloader.factory(
+        train_dl = RealmDataloader.factory(
             queries=train_queries.queries,
             vectors=train_queries.vectors,
             **shared_args,
             **train_dataloader_config.model_dump(),
         )
-        val_dl = vod_dataloaders.RealmDataloader.factory(
+        val_dl = RealmDataloader.factory(
             queries=val_queries.queries,
             vectors=val_queries.vectors,
             **shared_args,

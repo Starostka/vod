@@ -7,6 +7,7 @@ from lightning.fabric import wrappers as fabric_wrappers
 from loguru import logger
 from torch.utils import data as torch_data
 from vod_models.monitoring import RetrievalMonitor
+from vod_models.systems import VodSystem
 from vod_ops.utils import io
 from vod_ops.utils.chrono import Chrono
 from vod_ops.utils.format import format_pbar_info
@@ -21,7 +22,7 @@ from .val import validation_loop
 def training_loop(  # noqa: C901, PLR0915
     state: TrainerState,
     *,
-    module: vod_models.VodSystem,
+    module: VodSystem,
     optimizer: torch.optim.Optimizer,
     fabric: L.Fabric,
     train_dl: torch_data.DataLoader,

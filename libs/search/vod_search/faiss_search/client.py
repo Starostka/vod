@@ -7,9 +7,9 @@ from pathlib import Path
 import numpy as np
 import requests
 import rich
-import vod_types as vt
 from vod_search import base, io
 from vod_search.socket import find_available_port
+from vod_types.retrieval import RetrievalBatch
 
 # get the path to the server script
 server_run_path = Path(__file__).parent / "server.py"
@@ -44,7 +44,7 @@ class FaissClient(base.SearchClient):
         response.raise_for_status()
         return "OK" in response.text
 
-    def search_py(self, query_vec: np.ndarray, top_k: int = 3, timeout: float = 120) -> vt.RetrievalBatch:
+    def search_py(self, query_vec: np.ndarray, top_k: int = 3, timeout: float = 120) -> RetrievalBatch:
         """Search the server given a batch of vectors (slow implementation)."""
         response = requests.post(
             f"{self.url}/search",
@@ -56,7 +56,7 @@ class FaissClient(base.SearchClient):
         )
         response.raise_for_status()
         data = response.json()
-        return vt.RetrievalBatch.cast(
+        return RetrievalBatch.cast(
             indices=data["indices"],
             scores=data["scores"],
         )
@@ -71,7 +71,7 @@ class FaissClient(base.SearchClient):
         shard: None | list[base.ShardName] = None,  # noqa: ARG002
         top_k: int = 3,
         timeout: float = 120,
-    ) -> vt.RetrievalBatch:
+    ) -> RetrievalBatch:
         """Search the server given a batch of vectors."""
         start_time = time.time()
         serialized_vectors = io.serialize_np_array(vector)
@@ -94,7 +94,7 @@ class FaissClient(base.SearchClient):
         scores_list = io.deserialize_np_array(data["scores"])
 
         try:
-            return vt.RetrievalBatch.cast(
+            return RetrievalBatch.cast(
                 indices=indices_list,
                 scores=scores_list,
                 labels=None,

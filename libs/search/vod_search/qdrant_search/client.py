@@ -10,7 +10,6 @@ from typing import Any, Iterable, Optional
 import numba
 import numpy as np
 import qdrant_client
-import vod_types as vt
 from grpc import StatusCode
 from grpc._channel import _InactiveRpcError
 from loguru import logger
@@ -20,8 +19,10 @@ from qdrant_client.qdrant_remote import QdrantRemote
 from rich import status
 from rich.markup import escape
 from rich.progress import track
+from vod_types.sequence import DictsSequence, Sequence
 from vod_search import base
 from vod_tools import pretty
+from vod_types.retrieval import RetrievalBatch
 
 QDRANT_SUBSET_ID_KEY: str = "_SUBSET_ID_"
 
@@ -114,7 +115,7 @@ class QdrantSearchClient(base.SearchClient):
         ids: None | list[list[base.SectionId]] = None,  # noqa: ARG002
         shard: None | list[base.ShardName] = None,  # noqa: ARG002
         top_k: int = 3,
-    ) -> vt.RetrievalBatch:
+    ) -> RetrievalBatch:
         """Search the server given a batch of text and/or vectors."""
         if vector is None:
             raise ValueError("vector cannot be None")
@@ -152,7 +153,7 @@ class QdrantSearchClient(base.SearchClient):
 
 
 @numba.jit(forceobj=True, looplift=True)
-def _search_batch_to_rdtypes(batch: list[list[qdrm.ScoredPoint]], top_k: int) -> vt.RetrievalBatch:
+def _search_batch_to_rdtypes(batch: list[list[qdrm.ScoredPoint]], top_k: int) -> RetrievalBatch:
     """Convert a batch of search results to rdtypes."""
     scores = np.full((len(batch), top_k), -np.inf, dtype=np.float32)
     indices = np.full((len(batch), top_k), -1, dtype=np.int64)
@@ -164,7 +165,7 @@ def _search_batch_to_rdtypes(batch: list[list[qdrm.ScoredPoint]], top_k: int) ->
             if j > max_j:
                 max_j = j
 
-    return vt.RetrievalBatch(
+    return RetrievalBatch(
         scores=scores[:, : max_j + 1],
         indices=indices[:, : max_j + 1],
     )
@@ -185,7 +186,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
 
     def __init__(  # noqa: PLR0913
         self,
-        vectors: vt.Sequence[np.ndarray],
+        vectors: Sequence[np.ndarray],
         *,
         subset_ids: Optional[Iterable[str | int]] = None,
         host: str = "http://localhost",
@@ -314,7 +315,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
 def _validate(
     client: qdrant_client.QdrantClient,
     collection_name: str,
-    vectors: vt.Sequence[np.ndarray],
+    vectors: Sequence[np.ndarray],
     raise_if_invalid: bool = False,
 ) -> IndexValidationStatus:
     """Validate the index."""
@@ -430,7 +431,7 @@ def _make_qdrant_body(dim: int, body: Optional[dict[str, Any]]) -> dict[str, Any
 def _ingest_data(
     client: qdrant_client.QdrantClient,
     collection_name: str,
-    vectors: vt.Sequence[np.ndarray],
+    vectors: Sequence[np.ndarray],
     groups: Optional[Iterable[str | int]] = None,
     batch_size: int = 1_000,
 ) -> None:
@@ -440,7 +441,7 @@ def _ingest_data(
         range(0, len(vectors), batch_size),
         description=f"{_collection_name(collection_name)}: Ingesting {pretty.human_format_nb(len(vectors))} vectors",
     ):
-        vec_chunk = vt.slice_arrays_sequence(vectors, slice(j, j + batch_size))
+        vec_chunk = slice_arrays_sequence(vectors, slice(j, j + batch_size))
         if groups is None:
             payloads = None
         else:

@@ -8,7 +8,6 @@ import faiss.contrib.torch_utils  # type: ignore
 import gpustat
 import numpy as np
 import vod_configs
-import vod_types as vt
 from loguru import logger
 from tqdm import tqdm
 from vod_search.faiss_search import support as faiss_support
@@ -201,7 +200,7 @@ def _train_ivfpq(
 
 
 def build_faiss_index_multigpu(
-    vectors: vt.Sequence[np.ndarray],
+    vectors: Sequence[np.ndarray],
     *,
     factory_string: str,
     train_size: None | int = None,
@@ -257,7 +256,7 @@ def build_faiss_index_multigpu(
     return index
 
 
-def _sample_train_vecs(vectors: vt.Sequence[np.ndarray], train_size: None | int) -> np.ndarray:
+def _sample_train_vecs(vectors: Sequence[np.ndarray], train_size: None | int) -> np.ndarray:
     if train_size is None or train_size >= len(vectors):
         return vectors[:]
 
@@ -266,7 +265,7 @@ def _sample_train_vecs(vectors: vt.Sequence[np.ndarray], train_size: None | int)
 
 
 def _populate_index_cpu(
-    vectors: vt.Sequence[np.ndarray],
+    vectors: Sequence[np.ndarray],
     *,
     index: faiss.Index,
     preprocessor: None | faiss.VectorTransform = None,
@@ -292,7 +291,7 @@ def _populate_index_cpu(
 
 
 def _populate_index_multigpu(  # noqa: PLR0912, PLR0915
-    vectors: vt.Sequence[np.ndarray],
+    vectors: Sequence[np.ndarray],
     *,
     index: faiss.Index,
     gpu_config: vod_configs.FaissGpuConfig,

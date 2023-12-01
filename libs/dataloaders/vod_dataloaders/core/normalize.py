@@ -1,9 +1,9 @@
 import numpy as np
 import numpy.typing as npt
-import vod_types as vt
+from vod_types.retrieval import RetrievalBatch
 
 
-def normalize_search_scores_(search_results: dict[str, vt.RetrievalBatch], offset: float = 0.0) -> None:
+def normalize_search_scores_(search_results: dict[str, RetrievalBatch], offset: float = 0.0) -> None:
     """Subtract the minimum score from all score to allow consistent aggregation.
 
     NOTE: this method is inplace.

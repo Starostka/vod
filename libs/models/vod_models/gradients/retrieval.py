@@ -4,9 +4,9 @@ import warnings
 
 import torch
 import torch.nn
-import vod_types as vt
 
 from .base import Gradients
+from vod_types.batch import RealmBatch, RealmOutput
 
 GuidanceType = typ.Literal["sparse", "zero"]
 
@@ -30,10 +30,10 @@ class RetrievalGradients(Gradients):
     def __call__(
         self,
         *,
-        batch: vt.RealmBatch,
+        batch: RealmBatch,
         query_encoding: torch.Tensor,  # the encoding of the queries
         section_encoding: torch.Tensor,  # the encoding of the documents/sections
-    ) -> vt.RealmOutput:
+    ) -> RealmOutput:
         """Compute the KL divergence between the model and the data."""
         # 1. Determine the masked sections
         is_padding = batch.section__score.isinf() & (batch.section__score < 0)
@@ -85,7 +85,7 @@ class RetrievalGradients(Gradients):
                 continue
             diagnostics[key] = _compute_kld(retriever_logprobs, ref_scores).mean().detach()
 
-        return vt.RealmOutput(
+        return RealmOutput(
             loss=loss,
             retriever_scores=retriever_scores,
             diagnostics=diagnostics,
@@ -94,7 +94,7 @@ class RetrievalGradients(Gradients):
     def _auxiliary_losses(
         self,
         *,
-        batch: vt.RealmBatch,
+        batch: RealmBatch,
         loss: torch.Tensor,
         retriever_scores: torch.Tensor,
         data_targets: torch.Tensor,
@@ -119,7 +119,7 @@ class RetrievalGradients(Gradients):
 
 
 def _guidance_loss(
-    batch: vt.RealmBatch,
+    batch: RealmBatch,
     retriever_logprobs: torch.Tensor,
     guidance_type: GuidanceType = "zero",
 ) -> torch.Tensor:

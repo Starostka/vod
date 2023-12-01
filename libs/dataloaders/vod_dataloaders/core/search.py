@@ -7,9 +7,9 @@ import warnings
 import numpy as np
 import rich
 import tenacity
-import vod_search as vs
-import vod_types as vt
+from vod_search.base import SearchClient
 from vod_dataloaders.core import merge, normalize
+from vod_types.retrieval import RetrievalBatch
 
 from .utils import BlockTimer
 
@@ -25,10 +25,10 @@ def async_hybrid_search(  # noqa: PLR0913
     subset_ids: None | list[list[str]] = None,
     section_ids: list[list[str]],
     top_k: int,
-    clients: dict[str, vs.SearchClient],
+    clients: dict[str, SearchClient],
     weights: dict[str, float],
     lookup_engine_name: str = "sparse",
-) -> tuple[vt.RetrievalBatch, dict[str, np.ndarray]]:
+) -> tuple[RetrievalBatch, dict[str, np.ndarray]]:
     """Query a hybrid search engine using `asyncio` and merge the search results into one.
 
     NOTE: The `lookup_engine_name` is used to lookup the golden/positive sections.
@@ -77,9 +77,9 @@ def async_hybrid_search(  # noqa: PLR0913
 
 
 def _merge_search_results(
-    search_results: dict[str, vt.RetrievalBatch],
+    search_results: dict[str, RetrievalBatch],
     weights: dict[str, float],
-) -> tuple[vt.RetrievalBatch, dict[str, np.ndarray]]:
+) -> tuple[RetrievalBatch, dict[str, np.ndarray]]:
     """Merge the search results into one.
 
     This implementation is dependent of `async_hybrid_search` and requires the `lookup` client to be specified.
@@ -125,11 +125,11 @@ def _merge_search_results(
     return combined_results, raw_scores
 
 
-async def _execute_search(payloads: list[dict[str, typ.Any]]) -> list[vt.RetrievalBatch]:
+async def _execute_search(payloads: list[dict[str, typ.Any]]) -> list[RetrievalBatch]:
     """Execute the search asynchronously."""
 
     @tenacity.retry(stop=tenacity.stop_after_attempt(10), wait=tenacity.wait_random_exponential(min=1, max=60))
-    async def _async_search_one(args: dict[str, typ.Any]) -> vt.RetrievalBatch:
+    async def _async_search_one(args: dict[str, typ.Any]) -> RetrievalBatch:
         """Execute a single search with retries.
 
         NOTE: make sure to copy args before passing them to this function,
@@ -146,7 +146,7 @@ async def _execute_search(payloads: list[dict[str, typ.Any]]) -> list[vt.Retriev
     return await asyncio.gather(*futures)
 
 
-def _debug_inf_scores(r: vt.RetrievalBatch) -> None:
+def _debug_inf_scores(r: RetrievalBatch) -> None:
     """Check whether there is any `+inf` scores in the results.
 
     NOTE -VL: This sometimes happens with `faiss`. I still don't understand why.

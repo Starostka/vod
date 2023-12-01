@@ -2,10 +2,10 @@ import typing as typ
 
 import torch
 import transformers
-import vod_configs
-import vod_types as vt
 from typing_extensions import Self, Type
+from vod_configs.dataloaders import TokenizerCollateConfig
 from vod_tools.misc.template import Template
+from vod_types.functional import Collate
 
 
 def render_template_and_tokenize(
@@ -21,7 +21,7 @@ def render_template_and_tokenize(
     return {f"{prefix_key}{k}": v for k, v in outputs.items()}
 
 
-class TokenizerCollate(vt.Collate[typ.Any, torch.Tensor]):
+class TokenizerCollate(Collate[typ.Any, torch.Tensor]):
     """Collate function to format text and tokenize into `field.input_ids and `field.attention_mask` tensors."""
 
     def __init__(
@@ -52,7 +52,7 @@ class TokenizerCollate(vt.Collate[typ.Any, torch.Tensor]):
         )
 
     @classmethod
-    def instantiate(cls: Type[Self], config: vod_configs.TokenizerCollateConfig, *, field: str) -> Self:
+    def instantiate(cls: Type[Self], config: TokenizerCollateConfig, *, field: str) -> Self:
         """Initialize the collate function for the `predict` function."""
         template = getattr(config.templates, field, None)
         if template is None:

@@ -4,10 +4,12 @@ import typing as typ
 import omegaconf as omg
 import torch
 import transformers
-import vod_configs
-import vod_types as vt
+
+from vod_configs.support import TweaksConfig
+from vod_types.batch import RealmBatch, RealmOutput
 from transformers import modeling_outputs
-from vod_models import vod_encoder, vod_gradients
+from vod_models.gradients import Gradients
+from vod_models.encoder import VodEncoder
 from vod_models.support import apply_tweaks
 
 from .ranker import Ranker
@@ -22,12 +24,12 @@ class Realm(Ranker):
 
     def __init__(
         self,
-        encoder: vod_encoder.VodEncoder,
+        encoder: VodEncoder,
         lm: AutoregressiveLanguageModel,
-        gradients: vod_gradients.Gradients,
+        gradients: Gradients,
         optimizer: None | dict | omg.DictConfig | functools.partial = None,
         scheduler: None | dict | omg.DictConfig | functools.partial = None,
-        tweaks: None | dict | omg.DictConfig | vod_configs.TweaksConfig = None,
+        tweaks: None | dict | omg.DictConfig | TweaksConfig = None,
     ):
         super().__init__(
             optimizer=optimizer,
@@ -42,9 +44,9 @@ class Realm(Ranker):
 
     def evaluate(
         self,
-        batch: vt.RealmBatch,
+        batch: RealmBatch,
         **kws: typ.Any,
-    ) -> vt.RealmOutput:  # noqa: ARG002
+    ) -> RealmOutput:  # noqa: ARG002
         """Run a forward pass and compute the gradients."""
         lm_logits = self._forward_lm(
             input_ids=batch.lm__input_ids,  # type: ignore
